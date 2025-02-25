@@ -1,0 +1,404 @@
+MongoDB is a document database, often referred as non relational database
+stores data in the type of json format called BSON - data structure composed of key value pairs
+records in mongodb database are called documents
+In MongoDB, instead of tables these are called collections
+Create DB:
+----------
+use dbname
+Create collection:
+------------------
+db.createCollection("posts")  //method1
+db.posts.insertOne(object) //method2
+Insert documents:
+-----------------
+insertOne() //method1
+To insert a single document, use the insertOne() method.
+This method inserts a single object into the database.
+db.posts.insertOne({
+  title: "Post Title 1",
+  body: "Body of post.",
+  category: "News",
+  likes: 1,
+  tags: ["news", "events"],
+  date: Date()
+})
+insertMany() //method2
+To insert multiple documents at once, use the insertMany() method.
+This method inserts an array of objects into the database.
+db.posts.insertMany([
+{},
+{},
+{}
+])
+Find Data:
+----------
+find()
+------
+To select data from a collection in MongoDB, we can use the find() method.
+This method accepts a query object. If left empty, all documents will be returned.
+db.posts.find()
+findOne()
+---------
+To select only one document, we can use the findOne() method.
+This method accepts a query object. If left empty, it will return the first document it finds.
+db.posts.findOne()
+
+To query, or filter, data we can include a query in our find() or findOne() methods.
+e.g:
+db.posts.find( {category: "News"} )
+Both find methods accept a second parameter called projection.
+This parameter is an object that describes which fields to include in the results.
+db.posts.find({}, {title: 1, date: 1})
+here We use 1 to include a field and 0 to exclude a field.
+to exclude the id field, we can use
+db.posts.find({}, {_id: 0, title: 1, date: 1})
+We will get an error if we try to specify both 0 and 1 in the same object like this
+db.posts.find({}, {title: 1, date: 0})
+instead we can specify the above one as db.posts.find({}, {title: 1, date: 0, _id: 0})
+Update Document:
+----------------
+To update an existing document we can use the updateOne() or updateMany() methods.
+The first parameter is a query object to define which document or documents should be updated.
+The second parameter is an object defining the updated data.
+updateOne():
+------------
+db.posts.find( { title: "Post Title 1" } ) 
+Now let's update the "likes" on this post to 2. To do this, we need to use the $set operator.
+db.posts.updateOne( { title: "Post Title 1" }, { $set: { likes: 2 } } ) 
+
+If you would like to insert the document if it is not found, you can use the upsert option.
+db.posts.updateOne( 
+  { title: "Post Title 5" }, 
+  {
+    $set: 
+      {
+        title: "Post Title 5",
+        body: "Body of post.",
+        category: "Event",
+        likes: 5,
+        tags: ["news", "events"],
+        date: Date()
+      }
+  }, 
+  { upsert: true }
+)
+updateMany():
+------------
+Update likes on all documents by 1. For this we will use the $inc (increment) operator
+db.posts.updateMany({}, { $inc: { likes: 1 } })
+
+deleteOne():
+------------
+The deleteOne() method will delete the first document that matches the query provided.
+db.posts.deleteOne({ title: "Post Title 5" })
+deleteMany():
+-------------
+The deleteMany() method will delete all documents that match the query provided.
+db.posts.deleteMany({ category: "Technology" })
+
+Query operators:
+----------------
+comparison:
+-----------
+$eq: Values are equal
+$ne: Values are not equal
+$gt: Value is greater than another value
+$gte: Value is greater than or equal to another value
+$lt: Value is less than another value
+$lte: Value is less than or equal to another value
+$in: Value is matched within an array
+Logical:
+--------
+$and: Returns documents where both queries match
+$or: Returns documents where either query matches
+$nor: Returns documents where both queries fail to match
+$not: Returns documents where the query does not match
+Evaluation:
+-----------
+$regex: Allows the use of regular expressions when evaluating field values
+$text: Performs a text search
+$where: Uses a JavaScript expression to match documents
+
+Update operators:
+-----------------
+Fields:
+-------
+$currentDate: Sets the field value to the current date
+$inc: Increments the field value
+$rename: Renames the field
+$set: Sets the value of a field
+$unset: Removes the field from the document
+Arrays:
+-------
+$addToSet: Adds distinct elements to an array
+$pop: Removes the first or last element of an array
+$pull: Removes all elements from an array that match the query
+$push: Adds an element to an array
+
+Aggregation Pipelines:
+----------------------
+Aggregation operations allow you to group, sort, perform calculations, analyze data, and much more.
+Aggregation pipelines can have one or more "stages". 
+The order of these stages are important. Each stage acts upon the results of the previous stage.
+$group:
+-------
+This aggregation stage groups documents by the unique _id expression provided.
+db.listingsAndReviews.aggregate(
+    [ { $group : { _id : "$property_type" } } ]
+)
+The $group stage is used to group documents by a specific field. It is like a SQL GROUP BY operation.
+You define the grouping criteria by setting an _id field (which will contain the value you want to group by).
+$limit:
+-------
+db.movies.aggregate([ { $limit: 1 } ])
+this will return 1 movie from the collection
+$project:
+---------
+This is the same projection that is used with the find() method.
+e.g:
+db.restaurants.aggregate([
+  {
+    $project: {
+      "name": 1,
+      "cuisine": 1,
+      "address": 1
+    }
+  },
+  {
+    $limit: 5
+  }
+])
+this will display the documents that includes the specific fields
+$sort:
+------
+This aggregation stage groups sorts all documents in the specified sort order.
+e.g:
+db.listingsAndReviews.aggregate([ 
+  { 
+    $sort: { "accommodates": -1 } 
+  },
+  {
+    $project: {
+      "name": 1,
+      "accommodates": 1
+    }
+  },
+  {
+    $limit: 5
+  }
+])
+this will return the documents sorted in desc order by accomodates field
+The sort order can be chosen by using 1 or -1. 1 is ascending and -1 is descending.
+$match:
+-------
+This aggregation stage behaves like a find. It will filter documents that match the query provided.
+db.listingsAndReviews.aggregate([ 
+  { $match : { property_type : "House" } },
+  { $limit: 2 },
+  { $project: {
+    "name": 1,
+    "bedrooms": 1,
+    "price": 1
+  }}
+])
+this will return only the documents that have the property_type:house
+$addFields:
+-----------
+This aggregation stage adds new fields to documents.
+{
+    $addFields: {
+      avgGrade: { $avg: "$grades.score" }
+    }
+This will return the documents along with a new field, avgGrade, which will contain the average of each restaurants grades.score.
+$count:
+-------
+This aggregation stage counts the total amount of documents passed from the previous stage.
+db.restaurants.aggregate([
+  {
+    $match: { "cuisine": "Chinese" }
+  },
+  {
+    $count: "totalChinese"
+  }
+])
+This will return the number of documents at the $count stage as a field called "totalChinese".
+$lookup:
+--------
+This aggregation stage performs a left outer join to a collection in the same database.
+There are four required fields:
+from: The collection to use for lookup in the same database
+localField: The field in the primary collection that can be used as a unique identifier in the from collection.
+foreignField: The field in the from collection that can be used as a unique identifier in the primary collection.
+as: The name of the new field that will contain the matching documents from the from collection.
+db.comments.aggregate([
+  {
+    $lookup: {
+      from: "movies",
+      localField: "movie_id",
+      foreignField: "_id",
+      as: "movie_details",
+    },
+  },
+  {
+    $limit: 1
+  }
+])
+this will return the movie data along with each comment
+$out:
+-----
+This aggregation stage writes the returned documents from the aggregation pipeline to a collection.
+this should be the last stage of pipeline
+e.g:
+db.listingsAndReviews.aggregate([
+  {
+    $group: {
+      _id: "$property_type",
+      properties: {
+        $push: {
+          name: "$name",
+          accommodates: "$accommodates",
+          price: "$price",
+        },
+      },
+    },
+  },
+  { $out: "properties_by_type" },
+])
+The first stage will group properties by the property_type and include the name, accommodates, and price fields for each. 
+The $out stage will create a new collection called properties_by_type in the current database and write the resulting documents into that collection.
+
+Indexing & Search:
+------------------
+MongoDB Atlas comes with a full-text search engine that can be used to search for documents in a collection.
+db.movies.aggregate([
+  {
+    $search: {
+      index: "default", // optional unless you named your index something other than "default"
+      text: {
+        query: "star wars",
+        path: "title"
+      },
+    },
+  },
+  {
+    $project: {
+      title: 1,
+      year: 1,
+    }
+  }
+])
+The first stage of this aggregation pipeline will return all documents in the movies collection that contain the word "star" or "wars" in the title field.
+The second stage will project the title and year fields from each document.
+
+Schema validation:
+------------------
+Schema validation rules can be created in order to ensure that all documents in a collection share a similar structure.
+MongoDB supports JSON Schema validation. The $jsonSchema operator allows us to define our document structure.
+
+MongoDB Data API:
+-----------------
+it can be used to query and update data in a MongoDB database without the need for language specific drivers
+it is a pre-configured set of HTTPS endpoints that can be used to read and write data to a MongoDB Atlas database.
+With the MongoDB Data API, you can create, read, update, delete, or aggregate documents in a MongoDB Atlas database.
+In order to use the Data API, we must
+enable the data api
+generate api key
+send a request to the database as below
+curl --location --request POST 'https://data.mongodb-api.com/app/<DATA API APP ID>/endpoint/data/v1/action/findOne' \
+--header 'Content-Type: application/json' \
+--header 'Access-Control-Request-Headers: *' \
+--header 'api-key: <DATA API KEY>' \
+--data-raw '{
+    "dataSource":"<CLUSTER NAME>",
+    "database":"sample_mflix",
+    "collection":"movies",
+    "projection": {"title": 1}
+}'           //this is for find query
+
+All endpoints start with the Base URL: https://data.mongodb-api.com/app/<Data API App ID>/endpoint/data/v1/action/
+
+insert query:
+-------------
+{
+  "dataSource": "<data source name>",
+  "database": "<database name>",
+  "collection": "<collection name>",
+  "document": <document>  //insert single document
+  "documents": [<document>, <document>, ...]  //insert multiple documents
+}
+
+update query:
+-------------
+{
+  "dataSource": "<data source name>",
+  "database": "<database name>",
+  "collection": "<collection name>",
+  "filter": <query filter>,
+  "update": <update expression>,
+  "upsert": true|false
+}
+
+Delete:
+-------
+{
+  "dataSource": "<data source name>",
+  "database": "<database name>",
+  "collection": "<collection name>",
+  "filter": <query filter>
+}
+Aggregate documents:
+--------------------
+{
+  "dataSource": "<data source name>",
+  "database": "<database name>",
+  "collection": "<collection name>",
+  "pipeline": [<pipeline expression>, ...]
+}
+
+Mongodb nodejs database interaction:
+------------------------------------
+To use MongoDB with Node.js, you will need to install the mongodb package in your Node.js project.
+npm install mongodb
+In order to connect to our MongoDB Atlas database, we'll need to get our connection string from the Atlas dashboard.
+example connection:
+mongodb+srv://<username>:<password>@<cluster.string>.mongodb.net/myFirstDatabase?retryWrites=true&w=majority
+
+now create index.js file and run that by node index.js
+index file looks like
+const { MongoClient } = require('mongodb');
+
+const uri = "<Your Connection String>";
+const client = new MongoClient(uri);
+
+async function run() {
+  try {
+    await client.connect();
+    const db = client.db('sample_mflix');
+    const collection = db.collection('movies');
+
+    // Find the first document in the collection
+    const first = await collection.findOne();
+    console.log(first);
+  } finally {
+    // Close the database connection when finished or an error occurs
+    await client.close();
+  }
+}
+run().catch(console.error);
+
+here we can replace the collection.findOne() with find(), insertOne(), insertMany(), updateOne(), updateMany(), deleteOne(), deleteMany(), or aggregate()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
